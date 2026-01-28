@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import App from "./App";
 
-test("renders Snake title", () => {
+test("smoke: renders the Snake header and stats labels", () => {
   render(<App />);
-  expect(screen.getByText(/snake/i)).toBeInTheDocument();
+  expect(screen.getByText("SNAKE")).toBeInTheDocument();
+  expect(screen.getByText("Score")).toBeInTheDocument();
+  expect(screen.getByText("High")).toBeInTheDocument();
 });
