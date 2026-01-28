@@ -1,104 +1,361 @@
-/* CSS Variables for Theme Management */
+/* Retro Snake UI (responsive, accessible) */
+
 :root {
-  /* Light theme colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --text-primary: #282c34;
-  --text-secondary: #61dafb;
-  --border-color: #e9ecef;
-  --button-bg: #007bff;
-  --button-text: #ffffff;
+  --bg0: #070a12;
+  --bg1: #0b1020;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel2: rgba(255, 255, 255, 0.09);
+  --border: rgba(255, 255, 255, 0.12);
+
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.70);
+
+  --neonA: #3b82f6; /* primary */
+  --neonB: #06b6d4; /* accent */
+  --danger: #ef4444;
+
+  --cellBorder: rgba(255, 255, 255, 0.06);
+  --snake: #8bff73;
+  --snakeHead: #d5ffbf;
+  --food: #ff4fd8;
+
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  --radius: 18px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+  --sans: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 
-[data-theme="dark"] {
-  /* Dark theme colors */
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #282c34;
-  --text-primary: #ffffff;
-  --text-secondary: #61dafb;
-  --border-color: #404040;
-  --button-bg: #0056b3;
-  --button-text: #ffffff;
+* {
+  box-sizing: border-box;
 }
 
 .App {
-  text-align: center;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  color: var(--text);
+  font-family: var(--sans);
+  background:
+    radial-gradient(1200px 900px at 20% 10%, rgba(59, 130, 246, 0.18), transparent 52%),
+    radial-gradient(1100px 900px at 90% 20%, rgba(6, 182, 212, 0.16), transparent 54%),
+    radial-gradient(1200px 900px at 50% 90%, rgba(255, 79, 216, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  position: relative;
+  overflow: hidden;
 }
 
-.App-logo {
-  height: 40vmin;
+/* subtle CRT scanlines */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.035),
+    rgba(255, 255, 255, 0.035) 1px,
+    rgba(0, 0, 0, 0) 3px,
+    rgba(0, 0, 0, 0) 6px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.25;
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: var(--bg-secondary);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: var(--text-primary);
-  transition: background-color 0.3s ease;
+.gameShell {
+  width: min(980px, 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
   position: relative;
 }
 
-.App-link {
-  color: var(--text-secondary);
-  transition: color 0.3s ease;
+.topBar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 18px 14px 18px;
+  border-bottom: 1px solid var(--border);
 }
 
-.theme-toggle {
+.brandTitle {
+  font-family: var(--mono);
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 18px rgba(59, 130, 246, 0.35), 0 0 22px rgba(6, 182, 212, 0.25);
+}
+
+.brandSub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.stats {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.stat {
+  min-width: 86px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+
+.statValue {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+.mainArea {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  padding: 18px;
+}
+
+.boardFrame {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+/*
+  Responsive board:
+  We keep the board square using aspect-ratio.
+  Width is clamped to fit smaller screens and preserve side panel.
+*/
+.board {
+  width: min(560px, 100%);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  display: grid;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 18px 50px rgba(0, 0, 0, 0.45);
+  background:
+    radial-gradient(900px 900px at 50% 40%, rgba(59, 130, 246, 0.08), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+}
+
+.cell {
+  border-right: 1px solid var(--cellBorder);
+  border-bottom: 1px solid var(--cellBorder);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.cell--snake {
+  background: linear-gradient(180deg, rgba(139, 255, 115, 0.95), rgba(63, 255, 113, 0.75));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.20);
+}
+
+.cell--head {
+  background: linear-gradient(180deg, rgba(213, 255, 191, 0.98), rgba(139, 255, 115, 0.85));
+  box-shadow:
+    0 0 16px rgba(139, 255, 115, 0.30),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.cell--food {
+  background: radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.35), rgba(255, 79, 216, 0.98));
+  box-shadow: 0 0 22px rgba(255, 79, 216, 0.35);
+}
+
+.overlay {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  background-color: var(--button-bg);
-  color: var(--button-text);
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 600;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 8, 14, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.overlayCard {
+  width: min(420px, 92%);
+  padding: 18px 18px 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.06));
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.overlayTitle {
+  font-family: var(--mono);
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.overlayText {
+  color: var(--muted);
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+.overlayActions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.overlayHint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.35;
+}
+
+.controlsPanel {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.controlRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.controlRow .btn:last-child {
+  grid-column: 1 / -1;
+}
+
+.helpText {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.12);
+  font-family: var(--mono);
+}
+
+.mobileHint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px 16px 18px;
+  border-top: 1px solid var(--border);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+
+/* Buttons */
+.btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  padding: 12px 12px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  user-select: none;
 }
 
-.theme-toggle:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  opacity: 0.9;
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.theme-toggle:active {
-  transform: translateY(0);
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.btnPrimary {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.95), rgba(6, 182, 212, 0.92));
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.22);
+}
+
+.btnSecondary {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.06));
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.btnGhost {
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.btn:hover:not(:disabled) {
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* Responsive layout: stack side panel below board */
+@media (max-width: 920px) {
+  .mainArea {
+    grid-template-columns: 1fr;
   }
-  to {
-    transform: rotate(360deg);
+  .board {
+    width: min(640px, 100%);
+  }
+  .controlRow {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .controlRow .btn:last-child {
+    grid-column: auto;
   }
 }
 
-/* Responsive design for mobile */
-@media (max-width: 768px) {
-  .theme-toggle {
-    top: 10px;
-    right: 10px;
-    padding: 8px 16px;
-    font-size: 12px;
+@media (max-width: 520px) {
+  .topBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .stats {
+    grid-auto-flow: row;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .stat {
+    min-width: 0;
+  }
+  .controlRow {
+    grid-template-columns: 1fr;
+  }
+  .controlRow .btn:last-child {
+    grid-column: auto;
   }
 }
