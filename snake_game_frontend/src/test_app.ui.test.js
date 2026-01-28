@@ -12,19 +12,31 @@ import App from "./App";
  * so prefer role-based or scoped queries, or getAllBy* variants when appropriate.
  */
 
+const TICK_MS = 140;
+
 /**
- * Advance Jest fake timers and ensure React state updates triggered by timers
- * are fully flushed before assertions.
+ * Advance one game tick worth of timers and flush React 18 updates.
  *
- * React 18 can schedule updates asynchronously from timer callbacks; using
- * async act() + a microtask flush makes these tests deterministic.
+ * React 18 + fake timers can leave interval-driven state updates pending unless
+ * each timer advancement is wrapped in async act() and followed by a microtask flush.
  */
-async function advanceTimersAndFlush(ms) {
+async function advanceOneTick() {
   await act(async () => {
-    jest.advanceTimersByTime(ms);
-    // Flush any microtasks scheduled by React updates/timer callbacks.
+    jest.advanceTimersByTime(TICK_MS);
     await Promise.resolve();
   });
+}
+
+/**
+ * Advance multiple ticks deterministically (one interval at a time).
+ * This avoids flakiness where a large time jump doesn't reliably flush all
+ * interval callbacks/state updates under React 18.
+ */
+async function advanceTicks(count) {
+  for (let i = 0; i < count; i++) {
+    // eslint-disable-next-line no-await-in-loop
+    await advanceOneTick();
+  }
 }
 
 function getScoreValueNode() {
@@ -50,8 +62,12 @@ describe("App UI (stable state tests)", () => {
     jest.useFakeTimers();
   });
 
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
+  afterEach(async () => {
+    // Ensure any timer-driven React updates are flushed before switching timers back.
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    });
     jest.useRealTimers();
   });
 
@@ -106,7 +122,8 @@ describe("App UI (stable state tests)", () => {
     expect(getStatusValueNode()).toHaveTextContent("Playing");
 
     // Default direction is Right; on a 21x21 grid starting at x=10, it takes 11 ticks to reach x=21 and collide.
-    await advanceTimersAndFlush(12 * 140);
+    // Advance a bit more than needed to be safe, but do it tick-by-tick to avoid React 18 flakiness.
+    await advanceTicks(12);
 
     // Overlay appears (wait deterministically for it)
     expect(await screen.findByRole("dialog", { name: "Game status" })).toBeInTheDocument();
@@ -139,7 +156,7 @@ describe("App UI (stable state tests)", () => {
 
     // Start and advance a few ticks; score may remain 0 (food random), but reset should always stabilize UI.
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
-    await advanceTimersAndFlush(3 * 140);
+    await advanceTicks(3);
 
     fireEvent.click(screen.getByRole("button", { name: "Reset" }));
     expect(getScoreValueNode()).toHaveTextContent("0");
