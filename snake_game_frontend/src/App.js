@@ -398,20 +398,14 @@ function App() {
                 return <div key={key} className={className} />;
               })}
 
-              {(isGameOver || !isRunning) && (
+              {isGameOver && (
                 <div className="overlay" role="dialog" aria-modal="false" aria-label="Game status">
                   <div className="overlayCard">
-                    <div className="overlayTitle">{isGameOver ? "Game Over" : "Paused"}</div>
+                    <div className="overlayTitle">Game Over</div>
                     <div className="overlayText">{helperText}</div>
                     <div className="overlayActions">
-                      <button
-                        className="btn btnPrimary"
-                        onClick={() => {
-                          if (isGameOver) resetGame();
-                          else startOrResume();
-                        }}
-                      >
-                        {isGameOver ? "Restart" : "Resume"}
+                      <button className="btn btnPrimary" onClick={resetGame}>
+                        Restart
                       </button>
                       <button className="btn btnGhost" onClick={resetGame}>
                         Reset
@@ -427,6 +421,13 @@ function App() {
           </div>
 
           <div className="controlsPanel" aria-label="Controls">
+            {!isRunning && !isGameOver && (
+              <div className="pauseNotice" role="status" aria-live="polite">
+                <div className="pauseNoticeTitle">Paused</div>
+                <div className="pauseNoticeText">{helperText}</div>
+              </div>
+            )}
+
             <div className="controlRow">
               <button
                 className="btn btnPrimary"
