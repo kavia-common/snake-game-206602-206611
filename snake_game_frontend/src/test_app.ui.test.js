@@ -7,7 +7,25 @@ import App from "./App";
  * - using fake timers to control ticks
  * - moving in a straight line into the wall to trigger Game Over
  * - using localStorage to validate high score persistence
+ *
+ * NOTE: Some helper text appears in multiple locations (pause notice + help panel),
+ * so prefer role-based or scoped queries, or getAllBy* variants when appropriate.
  */
+
+/**
+ * Advance Jest fake timers and ensure React state updates triggered by timers
+ * are fully flushed before assertions.
+ *
+ * React 18 can schedule updates asynchronously from timer callbacks; using
+ * async act() + a microtask flush makes these tests deterministic.
+ */
+async function advanceTimersAndFlush(ms) {
+  await act(async () => {
+    jest.advanceTimersByTime(ms);
+    // Flush any microtasks scheduled by React updates/timer callbacks.
+    await Promise.resolve();
+  });
+}
 
 function getScoreValueNode() {
   const label = screen.getByText("Score");
@@ -48,7 +66,9 @@ describe("App UI (stable state tests)", () => {
     expect(getStatusValueNode()).toHaveTextContent("Paused");
     expect(screen.getByText("Start")).toBeInTheDocument();
     expect(screen.getByText("Resume")).toBeInTheDocument();
-    expect(screen.getByText(/Press Enter/i)).toBeInTheDocument();
+
+    // The paused helper text is displayed in two places (pause notice + help panel).
+    expect(screen.getAllByText(/Press Enter/i)).toHaveLength(2);
   });
 
   test("Start -> Playing, Pause -> Paused, Resume -> Playing", () => {
@@ -78,7 +98,7 @@ describe("App UI (stable state tests)", () => {
     expect(getStatusValueNode()).toHaveTextContent("Playing");
   });
 
-  test("running into the wall triggers Game Over overlay; Restart resets score and returns to paused", () => {
+  test("running into the wall triggers Game Over overlay; Restart resets score and returns to paused", async () => {
     render(<App />);
 
     // Start game
@@ -86,19 +106,20 @@ describe("App UI (stable state tests)", () => {
     expect(getStatusValueNode()).toHaveTextContent("Playing");
 
     // Default direction is Right; on a 21x21 grid starting at x=10, it takes 11 ticks to reach x=21 and collide.
-    act(() => {
-      jest.advanceTimersByTime(12 * 140);
-    });
+    await advanceTimersAndFlush(12 * 140);
 
-    // Overlay appears
-    expect(screen.getByRole("dialog", { name: "Game status" })).toBeInTheDocument();
+    // Overlay appears (wait deterministically for it)
+    expect(await screen.findByRole("dialog", { name: "Game status" })).toBeInTheDocument();
     expect(screen.getByText("Game Over")).toBeInTheDocument();
 
     // Start button should now read Restart (game over state)
     expect(screen.getByRole("button", { name: "Restart" })).toBeInTheDocument();
 
-    // Click Restart to reset
-    fireEvent.click(screen.getByRole("button", { name: "Restart" }));
+    // Click Restart to reset and flush state updates
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Restart" }));
+      await Promise.resolve();
+    });
 
     // Overlay should be gone and score back to 0, status paused
     expect(screen.queryByRole("dialog", { name: "Game status" })).not.toBeInTheDocument();
@@ -113,14 +134,12 @@ describe("App UI (stable state tests)", () => {
     expect(getHighValueNode()).toHaveTextContent("7");
   });
 
-  test("Reset button resets score to 0 and returns to paused", () => {
+  test("Reset button resets score to 0 and returns to paused", async () => {
     render(<App />);
 
     // Start and advance a few ticks; score may remain 0 (food random), but reset should always stabilize UI.
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
-    act(() => {
-      jest.advanceTimersByTime(3 * 140);
-    });
+    await advanceTimersAndFlush(3 * 140);
 
     fireEvent.click(screen.getByRole("button", { name: "Reset" }));
     expect(getScoreValueNode()).toHaveTextContent("0");
